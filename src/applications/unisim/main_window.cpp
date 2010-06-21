@@ -29,7 +29,8 @@ MainWindow* MainWindow::_mainWindow;
 MainWindow::MainWindow()
     : StoredWidget(this, "geometries/main"),
     fileLocationsSubWindow(0),
-    viewModelSubWindow(0)
+    viewModelSubWindow(0),
+    viewFileAsTextSubWindow(0)
 {
 	settings = new QSettings(this);
 
@@ -48,14 +49,20 @@ MainWindow::MainWindow()
 	windowMenu		= menuBar()->addMenu("&Window");
     //helpMenu		= menuBar()->addMenu("&Help");
 	
-	fileMenu->addAction( fileOpen = new QAction("&Open", this) );
+    fileMenu->addAction( fileOpen = new QAction("&Open...", this) );
 	connect( fileOpen, SIGNAL(triggered()), this, SLOT(doFileOpen()) );
 	
+    fileMenu->addAction( fileOpenAsText = new QAction("Open as &text...", this) );
+    connect( fileOpenAsText, SIGNAL(triggered()), this, SLOT(doFileOpenAsText()) );
+
+    fileMenu->addAction( fileSave = new QAction("&Save", this) );
+    connect( fileSave, SIGNAL(triggered()), this, SLOT(doFileSave()) );
+
+    fileMenu->addAction( fileSaveAs = new QAction("Save &as...", this) );
+    connect( fileSaveAs, SIGNAL(triggered()), this, SLOT(doFileSaveAs()) );
+
     fileMenu->addAction( fileReopen = new QAction("&Reopen", this) );
     connect( fileReopen, SIGNAL(triggered()), this, SLOT(doFileReopen()) );
-
-    /*fileMenu->addAction( fileEdit = new QAction("&Edit", this) );
-    connect( fileEdit, SIGNAL(triggered()), this, SLOT(doFileEdit()) );*/
 
     fileMenu->addAction( fileClose = new QAction("&Close", this) );
 	connect( fileClose, SIGNAL(triggered()), this, SLOT(doFileClose()) );
@@ -98,6 +105,53 @@ MainWindow::MainWindow()
 	statusBar()->addPermanentWidget(permanentMessage = new QLabel(this));
 	setPermanentMessage("No model");	
 }
+
+void MainWindow::doFileOpenAsText() {
+    QString folder = FileLocations::possibleLocation(FileLocations::Models).absolutePath();
+    QString filePath = QFileDialog::getOpenFileName(this,
+                                                    "Open model file",
+                                                    folder,
+                                                    "Model files (*.xml)");
+    if (filePath.isEmpty()) return;
+
+    viewFileAsText(filePath);
+}
+
+void MainWindow::doFileSave() {
+
+}
+
+void MainWindow::doFileSaveAs() {
+    QString folder = FileLocations::possibleLocation(FileLocations::Models).absolutePath();
+    QString filePath = QFileDialog::getSaveFileName(this,
+                                                    "Save model as",
+                                                    folder,
+                                                    "Model files (*.xml)");
+    if (filePath.isEmpty()) return;
+    saveFile(filePath);
+}
+
+void MainWindow::saveFile(QString filePath)
+{
+    if (!viewFileAsTextSubWindow)
+        return;
+
+    QFile file(filePath);
+    if(!file.open(QFile::WriteOnly|QFile::Text))
+    {
+        QMessageBox::warning(this,tr("Save file"),tr("Cannot save this file")
+                             .arg(filePath).arg(file.errorString()));
+        return;
+    }
+    QTextStream out(&file);
+
+    QTextEdit* textEdit =
+            viewFileAsTextSubWindow->findChild<QTextEdit*>();
+
+
+    out << textEdit->toPlainText();
+}
+
 
 PlotWidget* MainWindow::createPlotWidget(QString title) {
     SubWindow *subWindow = new SubWindow(_mdiArea, title);
@@ -195,7 +249,8 @@ void MainWindow::openFile(QString filePath)
 
 
 void  MainWindow::viewModel() {
-    if (!viewModelSubWindow) viewModelSubWindow = new SubWindow(_mdiArea, "Model view");
+    if (!viewModelSubWindow)
+        viewModelSubWindow = new SubWindow(_mdiArea, "Model view");
     UniSim::ImageWidget *image = new UniSim::ImageWidget;
     try {
         image->setImage(liveSim->graphFilePath());
@@ -212,6 +267,27 @@ void  MainWindow::viewModel() {
     viewModelSubWindow->showNormal();
 }
 
+void  MainWindow::viewFileAsText(QString filePath) {
+    if (!viewFileAsTextSubWindow)
+        viewFileAsTextSubWindow = new SubWindow(_mdiArea, "Model text view");
+    QTextEdit *textEdit = new QTextEdit(this);
+
+    QFile file(filePath);
+    if(!file.open(QFile::ReadOnly|QFile::Text)) {
+        QMessageBox::warning(this,tr("read file"),tr("Cannot read the file%1:\n%2")
+                             .arg(filePath).arg(file.errorString()));
+    }
+
+    QTextStream in(&file);
+    textEdit->setText(in.readAll());
+
+    viewFileAsTextSubWindow->setType(SubWindow::View);
+    viewFileAsTextSubWindow->setWidget(textEdit);
+    viewFileAsTextSubWindow->adjustSize();
+    viewFileAsTextSubWindow->showNormal();
+}
+
+/*
 void MainWindow::doFileEdit() {
     if (liveSim->state() != LiveSimulation::Ready)
         doFileOpen();
@@ -225,6 +301,7 @@ void MainWindow::editFile(QString filePath)
     _xmlEditors.append(new XmlEditor);
     _xmlEditors.last()->execute(filePath);
 }
+*/
 
 void MainWindow::doFileClose()
 {

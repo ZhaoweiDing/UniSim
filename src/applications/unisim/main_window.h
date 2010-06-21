@@ -44,7 +44,9 @@ public:
 private slots:
 	void doFileOpen();
     void doFileReopen();
-    void doFileEdit();
+    void doFileOpenAsText();
+    void doFileSave();
+    void doFileSaveAs();
     void doFileLocations();
     void doFileClose();
 	void doFileExit();
@@ -66,7 +68,8 @@ private:
 	// Main window GUI
     QMenu *fileMenu, *simulationMenu, *toolsMenu, *viewMenu, *windowMenu, *helpMenu;
 	QAction 
-        *fileOpen, *fileReopen, *fileEdit, *fileClose, *fileLocations, *fileExit,
+        *fileOpen, *fileOpenAsText, *fileSave, *fileSaveAs,
+        *fileReopen, *fileClose, *fileLocations, *fileExit,
 		*simulationRun,
         *toolsPrototyping, *toolsGenerateDocs,
 		*viewComponents, *viewLog,
@@ -76,7 +79,7 @@ private:
 	QLabel *permanentMessage;
 	QMdiArea *_mdiArea;
 	LogSubWindow *_logSubWindow;
-    SubWindow *fileLocationsSubWindow, *viewModelSubWindow;
+    SubWindow *fileLocationsSubWindow, *viewModelSubWindow, *viewFileAsTextSubWindow;
 	
 	// Data
     QList<UniSim::XmlEditor*> _xmlEditors;
@@ -92,7 +95,8 @@ private:
     void setTitle(QString subTitle);
 	void setPermanentMessage(QString message);
     void viewModel();
-	
+    void viewFileAsText(QString filePath);
+    void saveFile(QString filePath);
 };
 
 inline MainWindow* mainWindow()
